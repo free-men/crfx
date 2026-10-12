@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carfax Report Portal — Клієнтська генерація звітів</title>
+    <meta name="description" content="Автономний клієнтський портал для швидкої генерації офіційних звітів історії автомобілів Carfax у форматі PDF.">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Portal Stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Background glow shapes -->
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <div class="app-layout">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="brand">
+                <div class="brand-logo">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C2.1 11 2 11.5 2 12v4c0 .6.4 1 1 1h2"/>
+                        <circle cx="7" cy="17" r="2"/>
+                        <path d="M9 17h6"/>
+                        <circle cx="17" cy="17" r="2"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="brand-title">CARFAX <span>PORTAL</span></h1>
+                    <p class="brand-subtitle">Автономна генерація звітів історії автомобіля</p>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <!-- Server Status Indicator -->
+                <div id="serverStatusBadge" class="status-badge status-checking" title="Статус підключення до сервісу">
+                    <span class="status-dot"></span>
+                    <span id="serverStatusText">Підключення...</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- SECTION 1: API KEY & QUOTA LIMITS (Поле 1: API Ключ + Статистика) -->
+            <section class="card auth-card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="card-title">1. Ваш API-ключ</h2>
+                        <p class="card-description">Введіть персональний ключ доступу для перевірки лімітів та генерації звітів</p>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="apiKeyInput" class="form-label">
+                            <span>Ключ авторизації (API Key)</span>
+                            <span id="keyStatusIndicator" class="key-status-text"></span>
+                        </label>
+                        <div class="input-with-actions">
+                            <div class="input-wrapper">
+                                <span class="input-icon">🔑</span>
+                                <input 
+                                    type="password" 
+                                    id="apiKeyInput" 
+                                    placeholder="Введіть або вставте ваш API-ключ..." 
+                                    autocomplete="off" 
+                                    spellcheck="false"
+                                >
+                                <button type="button" id="toggleKeyVisibilityBtn" class="inline-btn" title="Показати/приховати ключ" aria-label="Показати/приховати ключ">
+                                    <span id="eyeIcon">👁️</span>
+                                </button>
+                            </div>
+                            <button type="button" id="checkQuotaBtn" class="btn btn-secondary">
+                                <span class="btn-icon">🔍</span>
+                                <span>Перевірити ліміти</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="key-options">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="saveKeyCheckbox" checked>
+                            <span>Запам'ятати ключ у цьому браузері</span>
+                        </label>
+                        <button type="button" id="clearKeyBtn" class="link-btn">Очистити ключ</button>
+                    </div>
+
+                    <!-- Quota & Stats Panel (Також зроби перевірку статистики і лімітів) -->
+                    <div id="quotaContainer" class="quota-container hidden">
+                        <div class="quota-header">
+                            <div class="quota-info">
+                                <span class="quota-title">Статистика та ліміти вашого ключа</span>
+                                <span id="quotaDescription" class="quota-desc-badge"></span>
+                            </div>
+                            <div class="quota-actions">
+                                <span id="quotaStatusBadge" class="badge"></span>
+                                <button type="button" id="refreshQuotaBtn" class="refresh-btn" title="Оновити статистику">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 4 Metric Cards Grid -->
+                        <div class="metrics-grid">
+                            <!-- Card 1: Balance -->
+                            <div class="metric-card">
+                                <div class="metric-label">
+                                    <span>Залишок балансу</span>
+                                    <span class="metric-icon-small">💰</span>
+                                </div>
+                                <div id="metricBalance" class="metric-value">—</div>
+                                <div class="metric-subtext">загальна кількість звітів</div>
+                            </div>
+
+                            <!-- Card 2: Daily Remaining -->
+                            <div class="metric-card highlight-metric">
+                                <div class="metric-label">
+                                    <span>Доступно сьогодні</span>
+                                    <span class="metric-icon-small">⚡</span>
+                                </div>
+                                <div id="metricDailyRemaining" class="metric-value">—</div>
+                                <div id="metricDailySubtext" class="metric-subtext">з денного ліміту</div>
+                            </div>
+
+                            <!-- Card 3: Daily Used -->
+                            <div class="metric-card">
+                                <div class="metric-label">
+                                    <span>Сьогодні використано</span>
+                                    <span class="metric-icon-small">📊</span>
+                                </div>
+                                <div id="metricDailyUsed" class="metric-value">—</div>
+                                <div class="metric-subtext">оновлюється щоночі о 00:00</div>
+                            </div>
+
+                            <!-- Card 4: Total Used -->
+                            <div class="metric-card">
+                                <div class="metric-label">
+                                    <span>Всього згенеровано</span>
+                                    <span class="metric-icon-small">📈</span>
+                                </div>
+                                <div id="metricTotalUsed" class="metric-value">—</div>
+                                <div class="metric-subtext">за весь час користування</div>
+                            </div>
+                        </div>
+
+                        <!-- Quota Progress Bar -->
+                        <div class="quota-progress-section">
+                            <div class="progress-labels">
+                                <span>Використання денної квоти</span>
+                                <span id="progressPercentage">0%</span>
+                            </div>
+                            <div class="progress-bar-bg">
+                                <div id="progressBarFill" class="progress-bar-fill" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 2: REPORT GENERATION (Поле 2: VIN номер, Поле 3: Мова) -->
+            <section class="card generate-card">
+                <div class="card-header">
+                    <div class="card-icon card-icon-car">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <path d="M7 7h10M7 12h10M7 17h6"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="card-title">2. Параметри звіту</h2>
+                        <p class="card-description">Вкажіть VIN-номер транспортного засобу та оберіть мову перекладу</p>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <!-- FIELD 2: VIN NUMBER -->
+                    <div class="form-group">
+                        <div class="label-with-tools">
+                            <label for="vinInput" class="form-label">
+                                <span>VIN-номер автомобіля (17 символів)</span>
+                            </label>
+                            <span id="vinCounter" class="char-counter">0 / 17</span>
+                        </div>
+
+                        <div class="input-wrapper input-vin-wrapper">
+                            <span class="input-icon">🚘</span>
+                            <input 
+                                type="text" 
+                                id="vinInput" 
+                                placeholder="1HGCR2F83HA123456" 
+                                maxlength="17" 
+                                autocomplete="off" 
+                                spellcheck="false"
+                            >
+                            <div class="vin-tools">
+                                <button type="button" id="pasteVinBtn" class="pill-btn" title="Вставити з буфера">Вставити</button>
+                                <button type="button" id="clearVinBtn" class="pill-btn" title="Очистити поле">&times;</button>
+                            </div>
+                        </div>
+                        <div id="vinValidationMessage" class="validation-message"></div>
+                    </div>
+
+                    <!-- FIELD 3: LANGUAGE SELECTION -->
+                    <div class="form-group">
+                        <label class="form-label">
+                            <span>Мова звіту Carfax</span>
+                            <span class="form-hint">Офіційний переклад документа</span>
+                        </label>
+
+                        <div class="languages-grid" role="radiogroup" aria-label="Вибір мови звіту">
+                            <!-- Ukrainian (Default) -->
+                            <label class="lang-option active">
+                                <input type="radio" name="reportLanguage" value="uk" checked>
+                                <span class="lang-flag">🇺🇦</span>
+                                <span class="lang-text">
+                                    <span class="lang-name">Українська</span>
+                                    <span class="lang-code">uk (за замовчуванням)</span>
+                                </span>
+                            </label>
+
+                            <!-- English -->
+                            <label class="lang-option">
+                                <input type="radio" name="reportLanguage" value="en">
+                                <span class="lang-flag">🇬🇧</span>
+                                <span class="lang-text">
+                                    <span class="lang-name">English</span>
+                                    <span class="lang-code">en (оригінал США)</span>
+                                </span>
+                            </label>
+
+                            <!-- Polish -->
+                            <label class="lang-option">
+                                <input type="radio" name="reportLanguage" value="pl">
+                                <span class="lang-flag">🇵🇱</span>
+                                <span class="lang-text">
+                                    <span class="lang-name">Polski</span>
+                                    <span class="lang-code">pl</span>
+                                </span>
+                            </label>
+
+                            <!-- Romanian -->
+                            <label class="lang-option">
+                                <input type="radio" name="reportLanguage" value="ro">
+                                <span class="lang-flag">🇷🇴</span>
+                                <span class="lang-text">
+                                    <span class="lang-name">Română</span>
+                                    <span class="lang-code">ro</span>
+                                </span>
+                            </label>
+
+                            <!-- Russian -->
+                            <label class="lang-option">
+                                <input type="radio" name="reportLanguage" value="ru">
+                                <span class="lang-flag">🌐</span>
+                                <span class="lang-text">
+                                    <span class="lang-name">Русский</span>
+                                    <span class="lang-code">ru</span>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- ACTION BUTTON: GENERATE PDF -->
+                    <div class="submit-action-wrapper">
+                        <button type="button" id="generateReportBtn" class="btn btn-primary btn-large">
+                            <span class="btn-glow"></span>
+                            <span class="btn-icon">🚀</span>
+                            <span id="generateBtnText">Сформувати та завантажити звіт Carfax (PDF)</span>
+                        </button>
+                    </div>
+
+                    <!-- LIVE GENERATION LOADER / PROGRESS -->
+                    <div id="generationLoader" class="loader-box hidden">
+                        <div class="loader-spinner-wrapper">
+                            <div class="spinner"></div>
+                        </div>
+                        <div class="loader-status">
+                            <h3 id="loaderTitle" class="loader-title">Формування звіту у процесі...</h3>
+                            <p id="loaderSubtitle" class="loader-subtitle">Підключення до автономного браузера та пошук у базі Carfax</p>
+                        </div>
+                        <div class="steps-progress">
+                            <div class="step-item step-active" id="step1">
+                                <span class="step-dot"></span>
+                                <span class="step-text">Авторизація</span>
+                            </div>
+                            <div class="step-item" id="step2">
+                                <span class="step-dot"></span>
+                                <span class="step-text">Пошук VIN</span>
+                            </div>
+                            <div class="step-item" id="step3">
+                                <span class="step-dot"></span>
+                                <span class="step-text">Переклад</span>
+                            </div>
+                            <div class="step-item" id="step4">
+                                <span class="step-dot"></span>
+                                <span class="step-text">PDF рендеринг</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SUCCESS RESULT PANEL -->
+                    <div id="resultContainer" class="result-box hidden">
+                        <div class="result-header">
+                            <div class="result-success-icon">✓</div>
+                            <div>
+                                <h3 class="result-title">Звіт успішно сформовано!</h3>
+                                <p id="resultSubtitle" class="result-subtitle">Документ готовий до завантаження та перегляду</p>
+                            </div>
+                        </div>
+
+                        <div class="result-details">
+                            <div class="detail-item">
+                                <span class="detail-label">VIN:</span>
+                                <strong id="resultVin" class="detail-value">—</strong>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Мова:</span>
+                                <strong id="resultLang" class="detail-value">—</strong>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Розмір PDF:</span>
+                                <strong id="resultSize" class="detail-value">—</strong>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Файл:</span>
+                                <strong id="resultFilename" class="detail-value">—</strong>
+                            </div>
+                        </div>
+
+                        <div class="result-actions">
+                            <a id="downloadPdfLink" class="btn btn-success" download="Carfax.pdf">
+                                <span class="btn-icon">📥</span>
+                                <span>Завантажити PDF</span>
+                            </a>
+                            <button type="button" id="previewPdfBtn" class="btn btn-secondary">
+                                <span class="btn-icon">👁️</span>
+                                <span>Переглянути звіт</span>
+                            </button>
+                            <button type="button" id="resetFormBtn" class="btn btn-ghost">
+                                <span>Згенерувати інший</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ERROR NOTIFICATION BOX -->
+                    <div id="errorContainer" class="error-box hidden">
+                        <div class="error-icon">⚠️</div>
+                        <div class="error-content">
+                            <h4 id="errorTitle" class="error-title">Помилка</h4>
+                            <p id="errorMessage" class="error-message">Сталася неочікувана помилка.</p>
+                            <div id="errorHelp" class="error-help"></div>
+                        </div>
+                        <button type="button" id="closeErrorBtn" class="error-close-btn">&times;</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <div class="footer-info">
+                <span>© Carfax Report Portal</span>
+                <span class="footer-sep">•</span>
+                <span>Офіційний портал перевірки автомобілів</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+    <!-- Scripts -->
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
