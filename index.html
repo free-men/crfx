@@ -383,8 +383,13 @@
     <!-- Toast Notification Container -->
     <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
-    <!-- Scripts (with cache-busting to prevent stale browser cache) -->
-    <script src="config.js?v=1.0.1"></script>
-    <script src="app.js?v=1.0.1"></script>
+    <!-- Scripts: Dynamic cache-busting ensures clients always fetch the latest config without cache delay -->
+    <script>
+        (function() {
+            var ts = Date.now();
+            document.write('<script src="config.js?t=' + ts + '"><\/script>');
+            document.write('<script src="app.js?t=' + ts + '"><\/script>');
+        })();
+    </script>
 </body>
 </html>
