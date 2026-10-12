@@ -5,10 +5,9 @@
  * Користувачі також можуть перевизначити цю адресу через меню налаштувань (шестерня у шапці сайту).
  */
 window.APP_CONFIG = {
-    // Основна адреса вашого API сервера (CarfaxChecker)
-    // Якщо ви використовуєте GitHub Pages (https://), для уникнення блокування Mixed Content 
-    // рекомендується використовувати домен з SSL (https://) або Cloudflare Tunnel.
-    API_SERVER_URL: "http://209.50.240.101:5000",
+    // Захищена адреса вашого API сервера через Cloudflare HTTPS Tunnel
+    // (вирішує блокування Mixed Content на GitHub Pages та приховує реальний IP сервера)
+    API_SERVER_URL: "https://boots-bones-indirect-trail.trycloudflare.com",
 
     // Мова за замовчуванням (uk | en | pl | ro | ru)
     DEFAULT_LANGUAGE: "uk",
