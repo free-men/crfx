@@ -3,7 +3,7 @@
  */
 window.APP_CONFIG = {
     // Активна захищена адреса вашого сервера через Cloudflare HTTPS Tunnel:
-    API_SERVER_URL: "https://favour-princeton-robust-lloyd.trycloudflare.com",
+    API_SERVER_URL: "https://names-nato-triumph-notebooks.trycloudflare.com",
 
     // Мова за замовчуванням (uk | en | pl | ro | ru)
     DEFAULT_LANGUAGE: "uk",
