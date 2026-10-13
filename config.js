@@ -2,8 +2,8 @@
  * Конфігурація клієнтського порталу звітів Carfax
  */
 window.APP_CONFIG = {
-    // Активна захищена адреса вашого сервера через Cloudflare HTTPS Tunnel:
-    API_SERVER_URL: "https://names-nato-triumph-notebooks.trycloudflare.com",
+    // Постійна офіційна адреса вашого API сервера із захищеним SSL-сертифікатом:
+    API_SERVER_URL: "https://api.carfx.pp.ua",
 
     // Мова за замовчуванням (uk | en | pl | ro | ru)
     DEFAULT_LANGUAGE: "uk",

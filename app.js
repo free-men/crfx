@@ -351,7 +351,8 @@
             } else {
                 throw new Error(`HTTP ${res.status}`);
             }
-        } catch {
+        } catch (err) {
+            console.warn('[Carfax API Status]', err);
             state.serverOnline = false;
             updateServerBadge('offline', 'Сервіс недоступний');
         }
