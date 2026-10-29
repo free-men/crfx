@@ -594,8 +594,13 @@
         const map = {
             uk: 'Українська (uk)',
             en: 'English (en)',
+            de: 'Deutsch (de)',
+            es: 'Español (es)',
+            fr: 'Français (fr)',
             pl: 'Polski (pl)',
             ro: 'Română (ro)',
+            ar: 'العربية (ar)',
+            fa: 'فارسی (fa)',
             ru: 'Русский (ru)'
         };
         return map[lang] || lang;
