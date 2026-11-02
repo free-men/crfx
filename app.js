@@ -98,12 +98,22 @@
         // Отримуємо адресу API з конфігурації
         state.apiUrl = cleanUrl((window.APP_CONFIG && window.APP_CONFIG.API_SERVER_URL) || 'http://209.50.240.101:5000');
 
-        // Відновлюємо збережений ключ
-        const savedKey = localStorage.getItem('carfax_api_key');
-        if (savedKey) {
-            state.apiKey = savedKey.trim();
+        // Перевіряємо URL параметр (?key= або ?api_key=)
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlKey = urlParams.get('key') || urlParams.get('api_key');
+        if (urlKey) {
+            state.apiKey = urlKey.trim();
             elements.apiKeyInput.value = state.apiKey;
             elements.saveKeyCheckbox.checked = true;
+            localStorage.setItem('carfax_api_key', state.apiKey);
+        } else {
+            // Відновлюємо збережений ключ
+            const savedKey = localStorage.getItem('carfax_api_key');
+            if (savedKey) {
+                state.apiKey = savedKey.trim();
+                elements.apiKeyInput.value = state.apiKey;
+                elements.saveKeyCheckbox.checked = true;
+            }
         }
 
         // Відновлюємо збережену мову або мову за замовчуванням
@@ -676,4 +686,193 @@
     } else {
         init();
     }
+
+    // =========================================================================
+    // CARFAX AUTHENTICITY CHECKER — Section 3
+    // Calls GET /api/vin-check — does NOT consume any report quota/balance.
+    // =========================================================================
+
+    (function initCarfaxAuthChecker() {
+
+        // DOM refs
+        const vinCheckInput       = document.getElementById('vinCheckInput');
+        const vinCheckCounter     = document.getElementById('vinCheckCounter');
+        const pasteVinCheckBtn    = document.getElementById('pasteVinCheckBtn');
+        const clearVinCheckBtn    = document.getElementById('clearVinCheckBtn');
+        const vinCheckValidMsg    = document.getElementById('vinCheckValidationMsg');
+        const checkBtn            = document.getElementById('checkCarfaxAuthBtn');
+        const checkBtnText        = document.getElementById('checkCarfaxAuthBtnText');
+        const loader              = document.getElementById('carfaxAuthLoader');
+        const resultWrap          = document.getElementById('carfaxAuthResult');
+        const invalidBox          = document.getElementById('carfaxAuthInvalid');
+        const invalidMsg          = document.getElementById('carfaxAuthInvalidMsg');
+        const validBox            = document.getElementById('carfaxAuthValid');
+        const vehicleEl           = document.getElementById('carfaxAuthVehicle');
+        const vinEl               = document.getElementById('carfaxAuthVin');
+        const makeEl              = document.getElementById('carfaxAuthMake');
+        const modelEl             = document.getElementById('carfaxAuthModel');
+        const yearEl              = document.getElementById('carfaxAuthYear');
+        const trimEl              = document.getElementById('carfaxAuthTrim');
+        const plantEl             = document.getElementById('carfaxAuthPlant');
+        const reportBadge         = document.getElementById('carfaxReportBadge');
+        const reportRow           = document.getElementById('carfaxAuthReportRow');
+        const noReportRow         = document.getElementById('carfaxAuthNoReportRow');
+        const reportLink          = document.getElementById('carfaxAuthReportLink');
+
+        if (!vinCheckInput || !checkBtn) return; // guard
+
+        let isChecking = false;
+
+        // VIN input handling
+        function handleVinCheckInput() {
+            let raw     = vinCheckInput.value;
+            let cleaned = raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (cleaned !== raw) vinCheckInput.value = cleaned;
+
+            const len = cleaned.length;
+            vinCheckCounter.textContent = `${len} / 17`;
+
+            if (len === 17) {
+                vinCheckCounter.style.color = 'var(--emerald)';
+                vinCheckValidMsg.textContent = '';
+                vinCheckValidMsg.className   = 'validation-message';
+            } else if (len > 0) {
+                vinCheckCounter.style.color = 'var(--amber)';
+                vinCheckValidMsg.textContent = `Потрібно 17 символів (введено ${len})`;
+                vinCheckValidMsg.className   = 'validation-message validation-warn';
+            } else {
+                vinCheckCounter.style.color = '';
+                vinCheckValidMsg.textContent = '';
+                vinCheckValidMsg.className   = 'validation-message';
+            }
+        }
+
+        vinCheckInput.addEventListener('input', handleVinCheckInput);
+        vinCheckInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !isChecking) { e.preventDefault(); runCheck(); }
+        });
+
+        clearVinCheckBtn.addEventListener('click', () => {
+            vinCheckInput.value = '';
+            handleVinCheckInput();
+            resultWrap.classList.add('hidden');
+            vinCheckInput.focus();
+        });
+
+        pasteVinCheckBtn.addEventListener('click', async () => {
+            try {
+                const text = await navigator.clipboard.readText();
+                if (text) {
+                    vinCheckInput.value = text.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 17);
+                    handleVinCheckInput();
+                    showToast('VIN вставлено з буфера', 'info');
+                }
+            } catch {
+                vinCheckInput.focus();
+                showToast('Натисніть Ctrl+V для вставки', 'info');
+            }
+        });
+
+        checkBtn.addEventListener('click', runCheck);
+
+        async function runCheck() {
+            const vin = vinCheckInput.value.trim().toUpperCase();
+
+            if (vin.length !== 17) {
+                vinCheckValidMsg.textContent = 'Введіть 17-значний VIN-номер';
+                vinCheckValidMsg.className   = 'validation-message validation-error';
+                vinCheckInput.focus();
+                return;
+            }
+
+            const apiKey = state.apiKey;
+            if (!apiKey) {
+                showToast('Спочатку введіть API-ключ у Секції 1', 'error');
+                document.getElementById('apiKeyInput')?.focus();
+                return;
+            }
+
+            setChecking(true);
+
+            try {
+                const url = `${state.apiUrl}/api/vin-check?vin=${encodeURIComponent(vin)}`;
+                const resp = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'X-API-Key': apiKey }
+                });
+
+                const data = await resp.json();
+                renderCarfaxAuthResult(data);
+            } catch (err) {
+                showToast('Помилка зв\'язку з сервером: ' + err.message, 'error');
+                resultWrap.classList.add('hidden');
+            } finally {
+                setChecking(false);
+            }
+        }
+
+        function setChecking(val) {
+            isChecking      = val;
+            checkBtn.disabled = val;
+            loader.classList.toggle('hidden', !val);
+            if (val) {
+                resultWrap.classList.add('hidden');
+                checkBtnText.textContent = 'Перевірка...';
+            } else {
+                checkBtnText.textContent = 'Перевірити наявність CARFAX-звіту';
+            }
+        }
+
+        function renderCarfaxAuthResult(data) {
+            resultWrap.classList.remove('hidden');
+
+            // Hide both sub-panels first
+            invalidBox.classList.add('hidden');
+            validBox.classList.add('hidden');
+
+            if (!data.success && !data.isValid) {
+                // API error
+                invalidBox.classList.remove('hidden');
+                invalidMsg.textContent = data.error || 'Помилка під час перевірки VIN.';
+                return;
+            }
+
+            if (!data.isValid) {
+                // VIN invalid / not found
+                invalidBox.classList.remove('hidden');
+                invalidMsg.textContent = data.error || 'VIN не знайдено у базі NHTSA.';
+                return;
+            }
+
+            // Valid VIN — show details card
+            validBox.classList.remove('hidden');
+
+            vehicleEl.textContent = data.vehicle  || '—';
+            vinEl.textContent     = data.vin       || '—';
+            makeEl.textContent    = data.make       || '—';
+            modelEl.textContent   = data.model      || '—';
+            yearEl.textContent    = data.year       ? String(data.year) : '—';
+            trimEl.textContent    = data.trim       || '—';
+            plantEl.textContent   = data.manufacturedIn || '—';
+
+            // CARFAX report status badge
+            if (data.hasCarfaxReport) {
+                reportBadge.textContent    = '✅ CARFAX доступний';
+                reportBadge.style.cssText  = 'padding:6px 14px;border-radius:50px;font-size:0.78rem;font-weight:700;white-space:nowrap;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.35);color:#34d399;';
+                reportRow.classList.remove('hidden');
+                noReportRow.classList.add('hidden');
+                if (data.reportUrl) reportLink.href = data.reportUrl;
+            } else {
+                reportBadge.textContent    = '❌ Звіт відсутній';
+                reportBadge.style.cssText  = 'padding:6px 14px;border-radius:50px;font-size:0.78rem;font-weight:700;white-space:nowrap;background:rgba(244,63,94,0.12);border:1px solid rgba(244,63,94,0.3);color:#f87171;';
+                reportRow.classList.add('hidden');
+                noReportRow.classList.remove('hidden');
+            }
+
+            // Scroll to result
+            resultWrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+    })(); // end initCarfaxAuthChecker
+
 })();
