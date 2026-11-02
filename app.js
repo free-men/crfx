@@ -785,20 +785,17 @@
                 return;
             }
 
-            const apiKey = state.apiKey;
-            if (!apiKey) {
-                showToast('Спочатку введіть API-ключ у Секції 1', 'error');
-                document.getElementById('apiKeyInput')?.focus();
-                return;
-            }
-
             setChecking(true);
 
             try {
                 const url = `${state.apiUrl}/api/vin-check?vin=${encodeURIComponent(vin)}`;
+                const headers = {};
+                if (state.apiKey) {
+                    headers['X-API-Key'] = state.apiKey;
+                }
                 const resp = await fetch(url, {
                     method: 'GET',
-                    headers: { 'X-API-Key': apiKey }
+                    headers: headers
                 });
 
                 const data = await resp.json();
